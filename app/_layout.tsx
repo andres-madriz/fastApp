@@ -1,75 +1,38 @@
-import { useEffect } from 'react';
-import { Stack } from 'expo-router';
-import { useFonts } from 'expo-font';
-import { useColorScheme } from 'nativewind';
-import * as SplashScreen from 'expo-splash-screen';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { ActivityIndicator, View, Text } from 'react-native';
-import 'react-native-reanimated';
+import { Slot } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { SessionProvider } from '../contexts';
+// Import your global CSS file
 import '../global.css';
-import { useAuth } from '../contexts/useAuth';
 
-export { ErrorBoundary } from 'expo-router';
-
-SplashScreen.preventAutoHideAsync();
-
-export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...FontAwesome.font,
-  });
-
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
-
-  useEffect(() => {
-    if (loaded) SplashScreen.hideAsync();
-  }, [loaded]);
-
-  if (!loaded) return <AppSpinner message="Loading fonts..." />;
-
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const { colorScheme } = useColorScheme();
-  const { user, loading, error } = useAuth();
-
-  if (loading) return <AppSpinner message="Checking authentication..." />;
-  if (error) return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ color: 'red' }}>{error.message}</Text>
-    </View>
-  );
-
+/**
+ * Root Layout is the highest-level layout in the app, wrapping all other layouts and screens.
+ * It provides:
+ * 1. Global authentication context via SessionProvider
+ * 2. Gesture handling support for the entire app
+ * 3. Global styles and configurations
+ *
+ * This layout affects every screen in the app, including both authenticated
+ * and unauthenticated routes.
+ */
+export default function Root() {
+  // Set up the auth context and render our layout inside of it.
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        {!user ? (
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        ) : (
-          <>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-          </>
-        )}
-      </Stack>
-    </ThemeProvider>
-  );
-}
-
-
-// Spinner component for reusability
-function AppSpinner({ message }: { message?: string }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' }}>
-      <ActivityIndicator size="large" color="#555" />
-      {message && (
-        <Text style={{ marginTop: 20, fontSize: 16, color: '#333', textAlign: 'center' }}>{message}</Text>
-      )}
-    </View>
+    <SessionProvider>
+      {/* 
+        GestureHandlerRootView is required for:
+        - Drawer navigation gestures
+        - Swipe gestures
+        - Other gesture-based interactions
+        Must wrap the entire app to function properly
+      */}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        {/* 
+          Slot renders child routes dynamically
+          This includes both (app) and (auth) group routes
+        */}
+        <Slot />
+      </GestureHandlerRootView>
+    </SessionProvider>
   );
 }

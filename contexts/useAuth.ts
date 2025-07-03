@@ -11,18 +11,18 @@ export function useAuth() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(
       auth,
-      (currentUser) => {
+      currentUser => {
         setUser(currentUser);
         setLoading(false);
         setError(null);
       },
-      (err) => {
+      err => {
         setError(err);
         setLoading(false);
-      }
+      },
     );
     return () => unsubscribe();
   }, []);
 
-  return { user, loading, error };
+  return { error, loading, user };
 }
