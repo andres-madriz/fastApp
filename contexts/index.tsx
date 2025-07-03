@@ -1,11 +1,11 @@
-/**
- * Authentication context module providing global auth state and methods.
- * @module
- */
-
+import { useRouter } from 'expo-router';
+import { usePathname } from 'expo-router';
+import { doc, getDoc } from 'firebase/firestore';
+import { ActivityIndicator, View } from 'react-native';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
+import { db } from '../lib/firebase-config';
 import { auth } from '../lib/firebase-config';
 import { login, logout, register } from '../lib/firebase-service';
 
@@ -13,69 +13,32 @@ import { login, logout, register } from '../lib/firebase-service';
 // Types & Interfaces
 // ============================================================================
 
-/**
- * Authentication context interface defining available methods and state
- * for managing user authentication throughout the application.
- * @interface
- */
 interface AuthContextType {
-  /**
-   * Authenticates an existing user with their credentials
-   * @param {string} email - User's email address
-   * @param {string} password - User's password
-   * @returns {Promise<User | undefined>} Authenticated user or undefined
-   */
-  signIn: (email: string, password: string) => Promise<User | undefined>;
-
-  /**
-   * Creates and authenticates a new user account
-   * @param {string} email - User's email address
-   * @param {string} password - User's password
-   * @param {string} [name] - Optional user's display name
-   * @returns {Promise<User | undefined>} Created user or undefined
-   */
-  signUp: (email: string, password: string, name?: string) => Promise<User | undefined>;
-
-  /**
-   * Logs out the current user and clears session
-   * @returns {void}
-   */
-  signOut: () => void;
-
-  /** Currently authenticated user */
+  userDoc: any; // <--- Add this to expose user Firestore doc
   user: User | null;
-  /** Loading state for authentication operations */
   isLoading: boolean;
+  signOut: () => void;
+  signIn: (email: string, password: string) => Promise<User | undefined>;
+  signUp: (email: string, password: string, name?: string) => Promise<User | undefined>;
 }
 
 // ============================================================================
 // Context Creation
 // ============================================================================
 
-/**
- * Authentication context instance
- * @type {React.Context<AuthContextType>}
- */
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 // ============================================================================
 // Hook
 // ============================================================================
 
-/**
- * Custom hook to access authentication context
- * @returns {AuthContextType} Authentication context value
- * @throws {Error} If used outside of AuthProvider
- */
 export function useSession(): AuthContextType {
   const value = useContext(AuthContext);
-
   if (process.env.NODE_ENV !== 'production') {
     if (!value) {
       throw new Error('useSession must be wrapped in a <SessionProvider />');
     }
   }
-
   return value;
 }
 
@@ -83,57 +46,54 @@ export function useSession(): AuthContextType {
 // Provider Component
 // ============================================================================
 
-/**
- * SessionProvider component that manages authentication state
- * @param {Object} props - Component props
- * @param {React.ReactNode} props.children - Child components
- * @returns {JSX.Element} Provider component
- */
 export function SessionProvider(props: { children: React.ReactNode }) {
-  // ============================================================================
-  // State & Hooks
-  // ============================================================================
-
-  /**
-   * Current authenticated user state
-   * @type {[User | null, React.Dispatch<React.SetStateAction<User | null>>]}
-   */
   const [user, setUser] = useState<User | null>(null);
-
-  /**
-   * Loading state for authentication operations
-   * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
-   */
   const [isLoading, setIsLoading] = useState(true);
+  const [userDoc, setUserDoc] = useState<any>(null);
+  const [userDocLoading, setUserDocLoading] = useState(true);
 
-  // ============================================================================
-  // Effects
-  // ============================================================================
+  const router = useRouter();
+  const pathname = usePathname();
 
-  /**
-   * Sets up Firebase authentication state listener
-   * Automatically updates user state on auth changes
-   */
+  // Listen for Firebase Auth user
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, user => {
       setUser(user);
       setIsLoading(false);
     });
-
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
 
-  // ============================================================================
-  // Handlers
-  // ============================================================================
+  // Fetch Firestore user doc on login
+  useEffect(() => {
+    if (!user) {
+      setUserDoc(null);
+      setUserDocLoading(false);
+      return;
+    }
+    setUserDocLoading(true);
+    const ref = doc(db, 'users', user.uid);
+    getDoc(ref).then(snap => {
+      setUserDoc(snap.exists() ? snap.data() : null);
+      setUserDocLoading(false);
+    });
+  }, [user]);
 
-  /**
-   * Handles user sign-in process
-   * @param {string} email - User's email address
-   * @param {string} password - User's password
-   * @returns {Promise<User | undefined>} Authenticated user or undefined
-   */
+  // Redirect if userDoc is loaded, user is logged in, but no homeId
+  useEffect(() => {
+    console.log('Auth effect', { pathname, user, userDoc, userDocLoading });
+    if (!user || userDocLoading) return;
+    if (!userDoc?.homeId && pathname !== '/HomeSelection') {
+      router.replace('/HomeSelection');
+    }
+
+    // If user IS on HomeSelection but now has a homeId, redirect to main app!
+    if (user && userDoc?.homeId && pathname === '/HomeSelection') {
+      router.replace('/'); // or wherever your app's main page is
+    }
+  }, [user, userDoc, userDocLoading]);
+
+  // Handlers
   const handleSignIn = async (email: string, password: string) => {
     try {
       const response = await login(email, password);
@@ -144,13 +104,6 @@ export function SessionProvider(props: { children: React.ReactNode }) {
     }
   };
 
-  /**
-   * Handles new user registration process
-   * @param {string} email - User's email address
-   * @param {string} password - User's password
-   * @param {string} [name] - Optional user's display name
-   * @returns {Promise<User | undefined>} Created user or undefined
-   */
   const handleSignUp = async (email: string, password: string, name?: string) => {
     try {
       const response = await register(email, password, name);
@@ -161,34 +114,36 @@ export function SessionProvider(props: { children: React.ReactNode }) {
     }
   };
 
-  /**
-   * Handles user sign-out process
-   * Clears local user state after successful logout
-   */
   const handleSignOut = async () => {
     try {
       await logout();
       setUser(null);
+      setUserDoc(null);
     } catch (error) {
       console.error('[handleSignOut error] ==>', error);
     }
   };
 
   // ============================================================================
-  // Render
-  // ============================================================================
 
   return (
     <AuthContext.Provider
       value={{
-        isLoading,
+        isLoading: isLoading || userDocLoading,
         signIn: handleSignIn,
         signOut: handleSignOut,
         signUp: handleSignUp,
         user,
+        userDoc,
       }}
     >
-      {props.children}
+      {isLoading || userDocLoading ? (
+        <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color="#0a7ea4" />
+        </View>
+      ) : (
+        props.children
+      )}
     </AuthContext.Provider>
   );
 }
