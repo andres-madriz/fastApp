@@ -5,37 +5,46 @@ import { View, Text, Pressable, ScrollView } from 'react-native';
 
 import { useSession } from '../../../../contexts';
 import { db } from '../../../../lib/firebase-config';
-import LivingAreaChecklist from '../../../../components/LivingAreaChecklist'; // Make sure this exists!
+import LivingAreaChecklist, { Task } from '../../../../components/LivingAreaChecklist';
 
-// Define the type for a single todo item
-type TodoItem = {
-  id: string;
-  name: string;
-  checked: boolean;
-};
+// ---------------------------------------
+// NEW: Defensive type! Remove old TodoItem!
+type TasksByArea = { [area: string]: Task[] };
 
 export default function TabsIndexScreen() {
   const { signOut, user, userDoc } = useSession();
 
-  // Ensure selectedAreas is always a string array
   const selectedAreas: string[] = userDoc?.selectedAreas || ['kitchen', 'bathroom', 'living room'];
   const homeId: string | undefined = userDoc?.homeId;
 
-  // Structure: { [area: string]: TodoItem[] }
-  const [todos, setTodos] = useState<{ [area: string]: TodoItem[] }>({});
+  const [todos, setTodos] = useState<TasksByArea>({});
 
+  // Defensive Firestore load: ensure every Task has all fields!
   useEffect(() => {
     if (!homeId) return;
     const fetchTodos = async () => {
       const homeRef = doc(db, 'homes', homeId);
       const snap = await getDoc(homeRef);
-      if (snap.exists()) setTodos(snap.data().todos || {});
+      if (snap.exists()) {
+        const rawTodos = snap.data().todos || {};
+        const cleanedTodos: TasksByArea = {};
+        Object.entries(rawTodos).forEach(([area, items]) => {
+          cleanedTodos[area] = (items as any[]).map(item => ({
+            checked: !!item.checked,
+            deadline: item.deadline || '',
+            details: item.details || '',
+            id: item.id,
+            name: item.name,
+          }));
+        });
+        setTodos(cleanedTodos);
+      }
     };
     fetchTodos();
   }, [homeId]);
 
-  // Update todos both in state and Firestore
-  const updateTodos = (area: string, newList: TodoItem[]) => {
+  // Updates todos in state and Firestore
+  const updateTodos = (area: string, newList: Task[]) => {
     const newTodos = { ...todos, [area]: newList };
     setTodos(newTodos);
     if (homeId) {
@@ -60,21 +69,34 @@ export default function TabsIndexScreen() {
           key={area}
           area={area}
           items={todos[area] || []}
-          onAdd={name =>
-            updateTodos(area, [...(todos[area] || []), { checked: false, id: Date.now().toString(), name }])
-          }
+          // Pass a full Task object on add!
+          onAdd={taskOrName => {
+            let task: Task;
+            if (typeof taskOrName === 'string') {
+              // When called with just a name, fill in blanks
+              task = {
+                checked: false,
+                deadline: '',
+                details: '',
+                id: Date.now().toString(),
+                name: taskOrName,
+              };
+            } else {
+              // Already a Task
+              task = { ...taskOrName, id: Date.now().toString() };
+            }
+            updateTodos(area, [...(todos[area] || []), task]);
+          }}
           onToggle={id =>
             updateTodos(
               area,
-              (todos[area] || []).map((item: TodoItem) =>
-                item.id === id ? { ...item, checked: !item.checked } : item,
-              ),
+              (todos[area] || []).map((item: Task) => (item.id === id ? { ...item, checked: !item.checked } : item)),
             )
           }
           onDelete={id =>
             updateTodos(
               area,
-              (todos[area] || []).filter((item: TodoItem) => item.id !== id),
+              (todos[area] || []).filter((item: Task) => item.id !== id),
             )
           }
         />

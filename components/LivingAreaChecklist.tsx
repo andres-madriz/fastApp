@@ -1,22 +1,40 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Button } from 'react-native';
+import { View, Text, TextInput, Button, FlatList, StyleSheet } from 'react-native';
 
-type TodoItem = {
+import TaskItem from './TaskItem';
+
+export type Task = {
   id: string;
   name: string;
+  details: string;
+  deadline: string;
   checked: boolean;
 };
 
 type Props = {
   area: string;
-  items: TodoItem[];
-  onAdd: (name: string) => void;
+  items: Task[];
+  onAdd: (task: Task) => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
 };
 
 export default function LivingAreaChecklist({ area, items, onAdd, onDelete, onToggle }: Props) {
   const [newItem, setNewItem] = useState('');
+
+  const handleAdd = () => {
+    if (newItem.trim()) {
+      const newTask: Task = {
+        checked: false,
+        deadline: '', // Future: let user pick a deadline
+        details: '', // Future: let user enter details
+        id: Date.now().toString(),
+        name: newItem.trim(),
+      };
+      onAdd(newTask);
+      setNewItem('');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -27,49 +45,15 @@ export default function LivingAreaChecklist({ area, items, onAdd, onDelete, onTo
           value={newItem}
           onChangeText={setNewItem}
           style={styles.input}
-          onSubmitEditing={() => {
-            if (newItem.trim()) {
-              onAdd(newItem.trim());
-              setNewItem('');
-            }
-          }}
+          onSubmitEditing={handleAdd}
         />
-        <Button
-          title="Add"
-          onPress={() => {
-            if (newItem.trim()) {
-              onAdd(newItem.trim());
-              setNewItem('');
-            }
-          }}
-        />
+        <Button title="Add" onPress={handleAdd} />
       </View>
       <FlatList
         data={items}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <View style={styles.itemRow}>
-            <TouchableOpacity
-              onPress={() => onToggle(item.id)}
-              style={[styles.checkbox, { backgroundColor: item.checked ? '#0a7ea4' : '#fff', borderColor: '#0a7ea4' }]}
-            >
-              {item.checked && <Text style={{ color: '#fff', fontWeight: 'bold' }}>✓</Text>}
-            </TouchableOpacity>
-            <Text
-              style={[
-                styles.itemText,
-                {
-                  color: item.checked ? '#9BA1A6' : '#11181C',
-                  textDecorationLine: item.checked ? 'line-through' : 'none',
-                },
-              ]}
-            >
-              {item.name}
-            </Text>
-            <TouchableOpacity onPress={() => onDelete(item.id)}>
-              <Text style={styles.deleteBtn}>🗑️</Text>
-            </TouchableOpacity>
-          </View>
+          <TaskItem task={item} area={area} onToggle={() => onToggle(item.id)} onDelete={() => onDelete(item.id)} />
         )}
       />
     </View>
@@ -77,20 +61,8 @@ export default function LivingAreaChecklist({ area, items, onAdd, onDelete, onTo
 }
 
 const styles = StyleSheet.create({
-  checkbox: {
-    alignItems: 'center',
-    borderRadius: 13,
-    borderWidth: 2,
-    height: 26,
-    justifyContent: 'center',
-    marginRight: 10,
-    width: 26,
-  },
   container: { backgroundColor: '#f8f9fa', borderRadius: 12, margin: 12, padding: 12 },
-  deleteBtn: { fontSize: 18, marginLeft: 8 },
   input: { borderColor: '#eee', borderRadius: 8, borderWidth: 1, flex: 1, marginRight: 8, padding: 10 },
   inputRow: { alignItems: 'center', flexDirection: 'row', marginBottom: 12 },
-  itemRow: { alignItems: 'center', flexDirection: 'row', marginBottom: 10 },
-  itemText: { flex: 1, fontSize: 15 },
   title: { fontSize: 19, fontWeight: 'bold', marginBottom: 10, textTransform: 'capitalize' },
 });
