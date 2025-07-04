@@ -4,6 +4,7 @@
  * @module
  */
 
+import { doc, setDoc } from 'firebase/firestore';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -13,6 +14,7 @@ import {
   UserCredential,
 } from 'firebase/auth';
 
+import { db } from './firebase-config';
 import { auth } from './firebase-config';
 
 // ============================================================================
@@ -105,4 +107,13 @@ export async function register(
     console.error('[error registering] ==>', e);
     throw e;
   }
+}
+
+export async function createUserDoc(user: { uid: string; email: string; displayName?: string }) {
+  await setDoc(doc(db, 'users', user.uid), {
+    email: user.email,
+    name: user.displayName || '', // or use your registration `name`
+    uid: user.uid,
+    // homeId is intentionally left out!
+  });
 }

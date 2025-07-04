@@ -1,60 +1,103 @@
-import React from 'react';
 import { router } from 'expo-router';
-import { View, Text, Pressable } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 
 import { useSession } from '../../../../contexts';
+import { db } from '../../../../lib/firebase-config';
+import LivingAreaChecklist from '../../../../components/LivingAreaChecklist'; // Make sure this exists!
 
-/**
- * TabsIndexScreen displays the main home screen content with personalized welcome message
- * @returns {JSX.Element} Home screen component
- */
-const TabsIndexScreen = () => {
-  // ============================================================================
-  // Hooks
-  // ============================================================================
-  const { signOut, user } = useSession();
-
-  // ============================================================================
-  // Handlers
-  // ============================================================================
-
-  /**
-   * Handles the logout process
-   */
-  const handleLogout = async () => {
-    await signOut();
-    router.replace('/sign-in');
-  };
-
-  // ============================================================================
-  // Computed Values
-  // ============================================================================
-
-  /**
-   * Gets the display name for the welcome message
-   * Prioritizes user's name, falls back to email, then default greeting
-   */
-  const displayName = user?.displayName || user?.email?.split('@')[0] || 'Guest';
-
-  // ============================================================================
-  // Render
-  // ============================================================================
-
-  return (
-    <View className="flex-1 justify-center items-center p-4">
-      {/* Welcome Section */}
-      <View className="items-center mb-8">
-        <Text className="text-xl font-bold text-gray-800 mb-2">Welcome back,</Text>
-        <Text className="text-2xl font-bold text-blue-600">{displayName}</Text>
-        <Text className="text-sm text-gray-500 mt-2">{user?.email}</Text>
-      </View>
-
-      {/* Logout Button */}
-      <Pressable onPress={handleLogout} className="bg-red-500 px-6 py-3 rounded-lg active:bg-red-600">
-        <Text className="text-white font-semibold text-base">Logout</Text>
-      </Pressable>
-    </View>
-  );
+// Define the type for a single todo item
+type TodoItem = {
+  id: string;
+  name: string;
+  checked: boolean;
 };
 
-export default TabsIndexScreen;
+export default function TabsIndexScreen() {
+  const { signOut, user, userDoc } = useSession();
+
+  // Ensure selectedAreas is always a string array
+  const selectedAreas: string[] = userDoc?.selectedAreas || ['kitchen', 'bathroom', 'living room'];
+  const homeId: string | undefined = userDoc?.homeId;
+
+  // Structure: { [area: string]: TodoItem[] }
+  const [todos, setTodos] = useState<{ [area: string]: TodoItem[] }>({});
+
+  useEffect(() => {
+    if (!homeId) return;
+    const fetchTodos = async () => {
+      const homeRef = doc(db, 'homes', homeId);
+      const snap = await getDoc(homeRef);
+      if (snap.exists()) setTodos(snap.data().todos || {});
+    };
+    fetchTodos();
+  }, [homeId]);
+
+  // Update todos both in state and Firestore
+  const updateTodos = (area: string, newList: TodoItem[]) => {
+    const newTodos = { ...todos, [area]: newList };
+    setTodos(newTodos);
+    if (homeId) {
+      updateDoc(doc(db, 'homes', homeId), { todos: newTodos });
+    }
+  };
+
+  const displayName = user?.displayName || userDoc?.name || (user?.email ? user.email.split('@')[0] : 'Guest');
+
+  return (
+    <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+      {/* Welcome Section */}
+      <View style={{ alignItems: 'center', marginBottom: 18, marginTop: 32 }}>
+        <Text style={{ color: '#222', fontSize: 20, fontWeight: 'bold', marginBottom: 4 }}>Welcome back,</Text>
+        <Text style={{ color: '#0a7ea4', fontSize: 24, fontWeight: 'bold' }}>{displayName}</Text>
+        <Text style={{ color: '#6b7280', fontSize: 13, marginTop: 4 }}>{user?.email}</Text>
+      </View>
+
+      {/* Living area checklists */}
+      {selectedAreas.map((area: string) => (
+        <LivingAreaChecklist
+          key={area}
+          area={area}
+          items={todos[area] || []}
+          onAdd={name =>
+            updateTodos(area, [...(todos[area] || []), { checked: false, id: Date.now().toString(), name }])
+          }
+          onToggle={id =>
+            updateTodos(
+              area,
+              (todos[area] || []).map((item: TodoItem) =>
+                item.id === id ? { ...item, checked: !item.checked } : item,
+              ),
+            )
+          }
+          onDelete={id =>
+            updateTodos(
+              area,
+              (todos[area] || []).filter((item: TodoItem) => item.id !== id),
+            )
+          }
+        />
+      ))}
+
+      {/* Logout Button */}
+      <Pressable
+        onPress={async () => {
+          await signOut();
+          router.replace('/sign-in');
+        }}
+        style={{
+          alignSelf: 'center',
+          backgroundColor: '#ef4444',
+          borderRadius: 10,
+          marginBottom: 30,
+          marginTop: 30,
+          paddingHorizontal: 36,
+          paddingVertical: 14,
+        }}
+      >
+        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', textAlign: 'center' }}>Logout</Text>
+      </Pressable>
+    </ScrollView>
+  );
+}

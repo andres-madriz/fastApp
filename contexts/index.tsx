@@ -7,7 +7,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 import { db } from '../lib/firebase-config';
 import { auth } from '../lib/firebase-config';
-import { login, logout, register } from '../lib/firebase-service';
+import { login, logout, register, createUserDoc } from '../lib/firebase-service';
 
 // ============================================================================
 // Types & Interfaces
@@ -107,9 +107,16 @@ export function SessionProvider(props: { children: React.ReactNode }) {
   const handleSignUp = async (email: string, password: string, name?: string) => {
     try {
       const response = await register(email, password, name);
+      if (response?.user) {
+        await createUserDoc({
+          displayName: name,
+          email: response.user.email ?? '',
+          uid: response.user.uid,
+        });
+      }
       return response?.user;
-    } catch (error) {
-      console.error('[handleSignUp error] ==>', error);
+    } catch (err) {
+      // error handling...
       return undefined;
     }
   };

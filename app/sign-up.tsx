@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { router, Link } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons'; // or MaterialIcons if you prefer
 import { Text, TextInput, View, Pressable } from 'react-native';
 
 import { useSession } from '@/contexts';
@@ -16,6 +17,8 @@ export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const { signUp } = useSession();
 
   // ============================================================================
@@ -27,10 +30,35 @@ export default function SignUp() {
    * @returns {Promise<Models.User<Models.Preferences> | null>}
    */
   const handleRegister = async () => {
+    setRegisterError(null);
+    // Client-side validation
+    if (password.length < 6) {
+      setRegisterError('Password must be at least 6 characters.');
+      return null;
+    }
     try {
       return await signUp(email, password, name);
-    } catch (err) {
-      console.log('[handleRegister] ==>', err);
+    } catch (err: unknown) {
+      // Safe check for Firebase error object
+      if (err && typeof err === 'object') {
+        if ('code' in err && typeof (err as any).code === 'string') {
+          const code = (err as any).code;
+          // Use code as you want
+          if (code === 'auth/weak-password') {
+            setRegisterError('Password must be at least 6 characters.');
+          } else if (code === 'auth/email-already-in-use') {
+            setRegisterError('That email is already registered.');
+          } else {
+            setRegisterError((err as any).message || 'Could not register. Please try again.');
+          }
+        } else if ('message' in err && typeof (err as any).message === 'string') {
+          setRegisterError((err as any).message);
+        } else {
+          setRegisterError('Could not register. Please try again.');
+        }
+      } else {
+        setRegisterError('Could not register. Please try again.');
+      }
       return null;
     }
   };
@@ -86,15 +114,26 @@ export default function SignUp() {
 
         <View>
           <Text className="text-sm font-medium text-gray-700 mb-1 ml-1">Password</Text>
-          <TextInput
-            placeholder="Create a password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            textContentType="newPassword"
-            className="w-full p-3 border border-gray-300 rounded-lg text-base bg-white"
-          />
+          <View style={{ alignItems: 'center', flexDirection: 'row' }}>
+            <TextInput
+              placeholder="Create a password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              textContentType="newPassword"
+              className="flex-1 w-full p-3 border border-gray-300 rounded-lg text-base bg-white"
+            />
+            <Pressable
+              onPress={() => setShowPassword(p => !p)}
+              style={{ marginLeft: 6 }}
+              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+            >
+              <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color="#687076" />
+            </Pressable>
+          </View>
         </View>
+        {/* Error Message */}
+        {registerError ? <Text className="text-red-500 mt-1 text-sm">{registerError}</Text> : null}
       </View>
 
       {/* Sign Up Button */}
