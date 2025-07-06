@@ -1,8 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
 import { useNavigation } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -17,11 +15,11 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerLeft: () => (
+        /* headerLeft: () => (
           <Pressable onPress={() => navigation.openDrawer()} style={{ marginLeft: 16 }}>
             <Ionicons name="menu" size={24} color="black" />
           </Pressable>
-        ),
+        ), */
         headerShown: true,
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
       }}

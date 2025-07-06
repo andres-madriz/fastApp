@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { addDays, addWeeks, addMonths, format } from 'date-fns';
-import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, TouchableOpacity, StyleSheet } from 'react-native';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const UNITS = [
@@ -9,48 +9,20 @@ const UNITS = [
   { label: 'months', value: 'months' },
 ];
 
-/**
- * Props for EditTaskModal
- * @param {task}        The task to edit (or null for none)
- * @param {onSave}      Called with the updated task when saving
- * @param {onCancel}    Called when the modal should close/cancel
- * @param {visible}     Whether the modal is shown (parent controls visibility)
- */
-export default function EditTaskModal({
-  onCancel,
-  onSave,
-  task,
-}: {
-  task: any | null;
-  onSave: (updatedTask: any) => void;
+type Props = {
+  area: string;
+  onCreate: (task: { name: string; details: string; deadline: string }) => void;
   onCancel: () => void;
-}) {
+};
+
+export default function CreateTaskModal({ area, onCancel, onCreate }: Props) {
   const [name, setName] = useState('');
   const [details, setDetails] = useState('');
   const [amount, setAmount] = useState('3');
   const [unit, setUnit] = useState<'days' | 'weeks' | 'months'>('days');
   const [deadline, setDeadline] = useState('');
 
-  // When modal opens or task changes, initialize form
-  useEffect(() => {
-    if (!task) return;
-    setName(task.name || '');
-    setDetails(task.details || '');
-    if (task.deadline) {
-      const foundDate = new Date(task.deadline);
-      const now = new Date();
-      const diffMs = foundDate.getTime() - now.getTime();
-      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-      setAmount(diffDays > 0 ? String(diffDays) : '3');
-      setUnit('days');
-      setDeadline(task.deadline);
-    } else {
-      setAmount('3');
-      setUnit('days');
-      setDeadline('');
-    }
-  }, [task]);
-
+  // Calculate deadline date (Date object)
   const deadlineDate = useMemo(() => {
     const n = Number(amount) || 0;
     if (unit === 'days') return addDays(new Date(), n);
@@ -59,22 +31,24 @@ export default function EditTaskModal({
     return new Date();
   }, [amount, unit]);
 
+  // Display string like "Deadline: Tuesday 09-07-2025"
   const deadlineDisplay = useMemo(() => {
     const dayName = WEEKDAYS[deadlineDate.getDay()];
     return `Deadline: ${dayName} ${format(deadlineDate, 'dd-MM-yyyy')}`;
   }, [deadlineDate]);
 
+  // Update ISO deadline string when the selector changes
   useEffect(() => {
     setDeadline(format(deadlineDate, 'yyyy-MM-dd'));
   }, [deadlineDate]);
 
-  if (!task) return null;
-
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Edit Task</Text>
+      <Text style={styles.title}>Create New Task</Text>
       <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Task name" />
       <TextInput style={styles.input} value={details} onChangeText={setDetails} placeholder="Details" />
+
+      {/* Deadline Selector */}
       <View style={styles.deadlinePicker}>
         <Text style={{ fontWeight: '600', marginBottom: 6 }}>Deadline in</Text>
         <View style={{ alignItems: 'center', flexDirection: 'row' }}>
@@ -97,15 +71,17 @@ export default function EditTaskModal({
         </View>
         <Text style={{ color: '#0a7ea4', fontWeight: '600', marginTop: 10 }}>{deadlineDisplay}</Text>
       </View>
+
       <Button
-        title="Save Changes"
+        title="Create Task"
         onPress={() => {
-          onSave({
-            ...task,
-            deadline,
-            details,
-            name,
-          });
+          if (name.trim()) {
+            onCreate({
+              deadline,
+              details: details.trim(),
+              name: name.trim(),
+            });
+          }
         }}
       />
       <Button title="Cancel" color="#aaa" onPress={onCancel} />
@@ -114,7 +90,7 @@ export default function EditTaskModal({
 }
 
 const styles = StyleSheet.create({
-  container: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '98%' },
+  container: { backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '100%' },
   deadlinePicker: { marginBottom: 18 },
   input: { borderColor: '#ccc', borderRadius: 8, borderWidth: 1, marginBottom: 18, padding: 12 },
   selectedUnitBtn: {

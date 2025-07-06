@@ -1,5 +1,4 @@
 import React from 'react';
-import { router } from 'expo-router';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 import { Task } from './LivingAreaChecklist';
@@ -9,9 +8,10 @@ type Props = {
   area: string;
   onToggle: () => void;
   onDelete: () => void;
+  onEdit: () => void; // NEW: Receive a callback instead of navigating!
 };
 
-export default function TaskItem({ area, onDelete, onToggle, task }: Props) {
+export default function TaskItem({ area, onDelete, onEdit, onToggle, task }: Props) {
   return (
     <View style={styles.itemRow}>
       <TouchableOpacity
@@ -46,15 +46,8 @@ export default function TaskItem({ area, onDelete, onToggle, task }: Props) {
           </Text>
         ) : null}
       </View>
-      {/* Edit Button - Always shown */}
-      <TouchableOpacity
-        onPress={() =>
-          router.push({
-            params: { area, taskId: task.id },
-            pathname: '/(app)/(modal)/editTask',
-          })
-        }
-      >
+      {/* Edit Button - Calls the provided onEdit callback */}
+      <TouchableOpacity onPress={onEdit}>
         <Text style={{ marginHorizontal: 4 }}>✏️</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={onDelete}>
