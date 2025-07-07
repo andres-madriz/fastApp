@@ -1,4 +1,5 @@
 import React from 'react';
+import { format } from 'date-fns';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 import { Task } from './LivingAreaChecklist';
@@ -8,10 +9,48 @@ type Props = {
   area: string;
   onToggle: () => void;
   onDelete: () => void;
-  onEdit: () => void; // NEW: Receive a callback instead of navigating!
+  onEdit: () => void;
 };
 
+function getProgress(createdAt: string, deadline: string): number {
+  const now = Date.now();
+  const created = new Date(createdAt).getTime();
+  const end = new Date(deadline).getTime();
+  if (!createdAt || !deadline || created >= end) return 1;
+  if (now <= created) return 0;
+  if (now >= end) return 1;
+  return (end - now) / (end - created);
+}
+
+function formatDeadline(deadline: string) {
+  if (!deadline) return '';
+  try {
+    const date = new Date(deadline);
+    return format(date, 'yyyy-MM-dd HH:mm');
+  } catch {
+    return deadline;
+  }
+}
+
 export default function TaskItem({ area, onDelete, onEdit, onToggle, task }: Props) {
+  const now = Date.now();
+  const deadline = new Date(task.deadline).getTime();
+  const overdue = deadline && now > deadline;
+
+  // Progreso siempre lleno si está overdue
+  const progress = overdue ? 1 : getProgress(task.createdAt, task.deadline);
+
+  // Si checked, gris. Si overdue y no checked, rojo. Si no, según progreso.
+  const progressColor = task.checked
+    ? '#bbb'
+    : overdue
+      ? '#ef4444'
+      : progress > 0.7
+        ? '#16a34a'
+        : progress > 0.3
+          ? '#eab308'
+          : '#ef4444';
+
   return (
     <View style={styles.itemRow}>
       <TouchableOpacity
@@ -42,9 +81,28 @@ export default function TaskItem({ area, onDelete, onEdit, onToggle, task }: Pro
         {task.details || task.deadline ? (
           <Text style={{ color: '#6b7280', fontSize: 13 }}>
             {task.details ? String(task.details) : ''}
-            {task.deadline ? ` | Due: ${String(task.deadline).slice(0, 10)}` : ''}
+            {task.deadline ? ` | Due: ${formatDeadline(task.deadline)}` : ''}
           </Text>
         ) : null}
+        <View
+          style={{
+            backgroundColor: '#eee',
+            borderRadius: 6,
+            height: 8,
+            marginTop: 7,
+            overflow: 'hidden',
+            width: '100%',
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: progressColor,
+              borderRadius: 6,
+              height: '100%',
+              width: `${Math.round(progress * 100)}%`,
+            }}
+          />
+        </View>
       </View>
       {/* Edit Button - Calls the provided onEdit callback */}
       <TouchableOpacity onPress={onEdit}>

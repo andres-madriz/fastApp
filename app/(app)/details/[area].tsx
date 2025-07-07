@@ -1,6 +1,7 @@
-import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useLocalSearchParams, router } from 'expo-router';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, ScrollView, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 
 import type { Task } from '../../../components/LivingAreaChecklist';
@@ -8,7 +9,7 @@ import type { Task } from '../../../components/LivingAreaChecklist';
 import { useSession } from '../../../contexts';
 import { db } from '../../../lib/firebase-config';
 import TaskItem from '../../../components/TaskItem';
-import EditTaskModal from '../../(app)/(modal)/editTask'; // <- Use your new overlay style!
+import EditTaskModal from '../../(app)/(modal)/editTask';
 import CreateTaskModal from '../../(app)/(modal)/createTaskModal';
 
 export default function AreaScreen() {
@@ -17,6 +18,7 @@ export default function AreaScreen() {
   const homeId = userDoc?.homeId;
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const insets = useSafeAreaInsets();
 
   // For modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -50,6 +52,7 @@ export default function AreaScreen() {
   const handleCreateTask = async ({ deadline, details, name }: { name: string; details: string; deadline: string }) => {
     const newTask: Task = {
       checked: false,
+      createdAt: new Date().toISOString(),
       deadline,
       details,
       id: Date.now().toString(),
@@ -75,8 +78,31 @@ export default function AreaScreen() {
     );
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: 24 }}>
+    <SafeAreaView style={{ backgroundColor: '#fff', flex: 1 }}>
+      {/* Back Button */}
+      <TouchableOpacity
+        style={{
+          backgroundColor: '#e6f6fb',
+          borderRadius: 8,
+          elevation: 2,
+          left: 20,
+          paddingHorizontal: 14,
+          paddingVertical: 6,
+          position: 'absolute',
+          top: insets.top + 6,
+          zIndex: 9,
+        }}
+        onPress={() => router.replace('../(drawer)/(tabs)/')}
+      >
+        <Text style={{ color: '#0a7ea4', fontSize: 16, fontWeight: 'bold', letterSpacing: 0.5 }}>← Home</Text>
+      </TouchableOpacity>
+
+      <ScrollView
+        contentContainerStyle={{
+          padding: 24,
+          paddingTop: insets.top + 54, // ensures space below back button AND notch
+        }}
+      >
         <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>
           {String(area).charAt(0).toUpperCase() + String(area).slice(1)}
         </Text>
@@ -131,7 +157,7 @@ export default function AreaScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 

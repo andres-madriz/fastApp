@@ -1,20 +1,13 @@
-import React, { useEffect } from 'react';
 import Svg, { Circle } from 'react-native-svg';
+import React, { useRef, useEffect } from 'react';
 import { TouchableOpacity, Text, StyleSheet, View, Animated, Easing } from 'react-native';
-
-type Props = {
-  area: string;
-  progress?: number; // 0 (rojo, vacío) a 1 (verde, lleno)
-  onPress?: () => void;
-  overdue?: boolean; // Nuevo prop para warning
-};
 
 const RADIUS = 68;
 const STROKE = 12;
 const CIRCLE_LENGTH = 2 * Math.PI * RADIUS;
 
-export default function AreaCard({ area, onPress, overdue = false, progress = 0 }: Props) {
-  const animated = React.useRef(new Animated.Value(progress)).current;
+export default function MyTasksCard({ onPress, progress = 0 }: { progress?: number; onPress?: () => void }) {
+  const animated = useRef(new Animated.Value(progress)).current;
 
   useEffect(() => {
     Animated.timing(animated, {
@@ -64,21 +57,13 @@ export default function AreaCard({ area, onPress, overdue = false, progress = 0 
           />
         </Svg>
         <View style={styles.centerCircle}>
-          <Text style={styles.text}>{area.charAt(0).toUpperCase() + area.slice(1)}</Text>
-          <View style={styles.percentRow}>
-            {overdue && (
-              <Text style={styles.warning} accessibilityLabel="Overdue tasks warning">
-                ⚠️
-              </Text>
-            )}
-            <Text style={styles.percentText}>{Math.round((progress || 0) * 100)}%</Text>
-          </View>
+          <Text style={styles.text}>My Tasks</Text>
+          <Text style={styles.percentText}>{Math.round((progress || 0) * 100)}%</Text>
         </View>
       </View>
     </TouchableOpacity>
   );
 }
-
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const styles = StyleSheet.create({
@@ -102,16 +87,11 @@ const styles = StyleSheet.create({
     top: 18,
     width: 124,
   },
-  percentRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 3,
-  },
   percentText: {
     color: '#0a7ea4',
     fontSize: 20,
     fontWeight: '600',
+    marginTop: 5,
   },
   svgWrap: {
     alignItems: 'center',
@@ -133,10 +113,5 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'center',
     textTransform: 'capitalize',
-  },
-  warning: {
-    fontSize: 21,
-    marginRight: 5,
-    marginTop: 1,
   },
 });

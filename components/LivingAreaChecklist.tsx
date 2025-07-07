@@ -9,6 +9,7 @@ export type Task = {
   details: string;
   deadline: string;
   checked: boolean;
+  createdAt: string; // <-- add this!
 };
 
 type Props = {
@@ -26,6 +27,7 @@ export default function LivingAreaChecklist({ area, items, onAdd, onDelete, onTo
     if (newItem.trim()) {
       const newTask: Task = {
         checked: false,
+        createdAt: '',
         deadline: '', // Future: let user pick a deadline
         details: '', // Future: let user enter details
         id: Date.now().toString(),

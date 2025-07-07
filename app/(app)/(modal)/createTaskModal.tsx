@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { addDays, addWeeks, addMonths, format } from 'date-fns';
-import { View, Text, TextInput, Button, TouchableOpacity, StyleSheet } from 'react-native';
+import { addDays, addWeeks, addMonths, format, isToday, isBefore } from 'date-fns';
+import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const UNITS = [
@@ -20,27 +20,53 @@ export default function CreateTaskModal({ area, onCancel, onCreate }: Props) {
   const [details, setDetails] = useState('');
   const [amount, setAmount] = useState('3');
   const [unit, setUnit] = useState<'days' | 'weeks' | 'months'>('days');
+  const [hour, setHour] = useState('12');
+  const [minute, setMinute] = useState('00');
   const [deadline, setDeadline] = useState('');
 
-  // Calculate deadline date (Date object)
+  // Calcula la fecha límite (objeto Date)
   const deadlineDate = useMemo(() => {
-    const n = Number(amount) || 0;
-    if (unit === 'days') return addDays(new Date(), n);
-    if (unit === 'weeks') return addWeeks(new Date(), n);
-    if (unit === 'months') return addMonths(new Date(), n);
-    return new Date();
-  }, [amount, unit]);
+    let d = new Date();
+    if (unit === 'days') d = addDays(d, Number(amount) || 0);
+    else if (unit === 'weeks') d = addWeeks(d, Number(amount) || 0);
+    else if (unit === 'months') d = addMonths(d, Number(amount) || 0);
+    d.setHours(Number(hour) || 0);
+    d.setMinutes(Number(minute) || 0);
+    d.setSeconds(0);
+    d.setMilliseconds(0);
+    return d;
+  }, [amount, unit, hour, minute]);
 
-  // Display string like "Deadline: Tuesday 09-07-2025"
+  // String preview tipo: Deadline: Wednesday 10-07-2025 14:00
   const deadlineDisplay = useMemo(() => {
     const dayName = WEEKDAYS[deadlineDate.getDay()];
-    return `Deadline: ${dayName} ${format(deadlineDate, 'dd-MM-yyyy')}`;
+    return `Deadline: ${dayName} ${format(deadlineDate, 'dd-MM-yyyy HH:mm')}`;
   }, [deadlineDate]);
 
-  // Update ISO deadline string when the selector changes
+  // Actualiza deadline ISO cada que cambia la fecha/hora
   useEffect(() => {
-    setDeadline(format(deadlineDate, 'yyyy-MM-dd'));
+    setDeadline(deadlineDate.toISOString());
   }, [deadlineDate]);
+
+  // Validación de tiempo coherente
+  const validateTime = () => {
+    const h = Number(hour);
+    const m = Number(minute);
+    if (isNaN(h) || h < 0 || h > 23) {
+      Alert.alert('Invalid Hour', 'Hour must be between 0 and 23');
+      return false;
+    }
+    if (isNaN(m) || m < 0 || m > 59) {
+      Alert.alert('Invalid Minutes', 'Minutes must be between 0 and 59');
+      return false;
+    }
+    // Si la fecha es hoy, la hora debe ser en el futuro
+    if (isToday(deadlineDate) && isBefore(deadlineDate, new Date())) {
+      Alert.alert('Invalid Time', 'Deadline time must be in the future');
+      return false;
+    }
+    return true;
+  };
 
   return (
     <View style={styles.container}>
@@ -69,15 +95,42 @@ export default function CreateTaskModal({ area, onCancel, onCreate }: Props) {
             </TouchableOpacity>
           ))}
         </View>
+        {/* Hour/Minute selector */}
+        <View style={{ alignItems: 'center', flexDirection: 'row', marginTop: 8 }}>
+          <Text style={{ marginRight: 6 }}>Time:</Text>
+          <TextInput
+            value={hour}
+            onChangeText={val => setHour(val.replace(/[^0-9]/g, ''))}
+            keyboardType="numeric"
+            maxLength={2}
+            style={[styles.input, { marginBottom: 0, marginRight: 2, textAlign: 'center', width: 40 }]}
+            placeholder="HH"
+          />
+          <Text style={{ fontSize: 17, fontWeight: 'bold' }}>:</Text>
+          <TextInput
+            value={minute}
+            onChangeText={val => setMinute(val.replace(/[^0-9]/g, ''))}
+            keyboardType="numeric"
+            maxLength={2}
+            style={[styles.input, { marginBottom: 0, marginLeft: 2, textAlign: 'center', width: 40 }]}
+            placeholder="MM"
+          />
+        </View>
         <Text style={{ color: '#0a7ea4', fontWeight: '600', marginTop: 10 }}>{deadlineDisplay}</Text>
       </View>
 
       <Button
         title="Create Task"
         onPress={() => {
-          if (name.trim()) {
+          if (!name.trim()) return;
+          if (validateTime()) {
+            // Ajustar a UTC "manual" para guardar la hora local
+            const offsetMs = deadlineDate.getTimezoneOffset() * 60 * 1000;
+            const adjusted = new Date(deadlineDate.getTime() - offsetMs);
+            const iso = adjusted.toISOString();
+
             onCreate({
-              deadline,
+              deadline: iso,
               details: details.trim(),
               name: name.trim(),
             });
