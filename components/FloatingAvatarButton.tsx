@@ -16,7 +16,7 @@ export default function FloatingAvatarButton() {
   return (
     <TouchableOpacity
       style={styles.fab}
-      onPress={() => router.push('/profile')}
+      onPress={() => router.push('/details/profile')}
       activeOpacity={0.86}
       accessibilityLabel="Open user profile"
     >

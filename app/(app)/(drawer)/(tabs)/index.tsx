@@ -8,6 +8,7 @@ import type { Task } from '../../../../components/LivingAreaChecklist';
 import { useSession } from '../../../../contexts';
 import { db } from '../../../../lib/firebase-config';
 import AreaCard from '../../../../components/AreaCard';
+import FloatingAvatarButton from '../../../../components/FloatingAvatarButton';
 
 export default function TabsIndexScreen() {
   const { signOut, user, userDoc } = useSession();
@@ -102,6 +103,7 @@ export default function TabsIndexScreen() {
       >
         Logout
       </Text>
+      <FloatingAvatarButton />
     </View>
   );
 }

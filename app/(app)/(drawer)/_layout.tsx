@@ -27,13 +27,6 @@ const DrawerLayout = () => {
           - Each represents a screen accessible via the drawer menu
           - Will use the drawer header by default
         */}
-        <Drawer.Screen
-          name="profile"
-          options={{
-            drawerLabel: 'Profile', // Label shown in drawer menu
-            title: 'Profile', // Header title when screen is open
-          }}
-        />
       </Drawer>
     </GestureHandlerRootView>
   );
