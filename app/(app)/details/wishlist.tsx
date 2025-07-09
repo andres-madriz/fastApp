@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { View, Text, TextInput, Button, TouchableOpacity, FlatList, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, Button, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 
 import { useSession } from '../../../contexts';
 import { db } from '../../../lib/firebase-config';
+import AppLayout from '../../../components/UI/AppLayout'; // Usa tu layout base
 
 // Wishlist item type
 type WishlistItem = {
@@ -64,7 +65,7 @@ export default function WishlistScreen() {
   };
 
   return (
-    <SafeAreaView style={{ backgroundColor: '#fff', flex: 1 }}>
+    <AppLayout>
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backButtonText}>← Back</Text>
@@ -120,7 +121,7 @@ export default function WishlistScreen() {
           />
         )}
       </View>
-    </SafeAreaView>
+    </AppLayout>
   );
 }
 

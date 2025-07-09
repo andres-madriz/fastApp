@@ -1,11 +1,13 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 
 import { useSession } from '../../../contexts';
 import { db } from '../../../lib/firebase-config';
 import TaskItem from '../../../components/TaskItem';
+/* import AppLayout from '../_layout'; */
+import AppLayout from '../../../components/UI/AppLayout'; // Usa tu layout base
 
 export default function MyTasksScreen() {
   const { userDoc } = useSession();
@@ -36,7 +38,7 @@ export default function MyTasksScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <AppLayout>
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backButtonText}>← Back</Text>
@@ -65,7 +67,7 @@ export default function MyTasksScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </AppLayout>
   );
 }
 

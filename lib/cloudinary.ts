@@ -1,6 +1,6 @@
 // lib/cloudinary.ts
-import axios from "axios";
-import { Platform } from "react-native";
+import axios from 'axios';
+import { Platform } from 'react-native';
 
 const CLOUDINARY_CLOUD_NAME = 'dvzlv2crv';
 const CLOUDINARY_UPLOAD_PRESET = 'HomeHub';
@@ -10,7 +10,7 @@ const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOU
  * Helper to convert a file uri to a base64 string (for web compatibility)
  */
 async function uriToBase64(uri: string): Promise<string | null> {
-  if (Platform.OS === "web") {
+  if (Platform.OS === 'web') {
     // Fetch the image and convert to base64
     try {
       const response = await fetch(uri);
@@ -40,9 +40,9 @@ export const uploadFileToCloudinary = async (
       const formData = new FormData();
 
       // Special handling for web: Convert to base64
-      if (Platform.OS === "web") {
+      if (Platform.OS === 'web') {
         const base64 = await uriToBase64(file.uri);
-        if (!base64) return { success: false, msg: "Failed to read image in web mode" };
+        if (!base64) return { msg: 'Failed to read image in web mode', success: false };
         formData.append('file', `data:image/jpeg;base64,${base64}`);
       } else {
         formData.append('file', {

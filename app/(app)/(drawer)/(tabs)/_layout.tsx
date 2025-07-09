@@ -1,59 +1,21 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { useNavigation } from 'expo-router';
-import { DrawerNavigationProp } from '@react-navigation/drawer';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { TabBarIcon } from '@/components/navigation/TabBarIcon';
-
-import { Colors } from '../../../../constants/Colors'; // Use default import if your Colors file uses `export default`
+import CustomTabBar from '../../../../components/CustomTabBar'; // adjust path as needed
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const navigation = useNavigation<DrawerNavigationProp<any>>();
-
   return (
     <Tabs
+      tabBar={props => <CustomTabBar {...props} />}
       screenOptions={{
-        /* headerLeft: () => (
-          <Pressable onPress={() => navigation.openDrawer()} style={{ marginLeft: 16 }}>
-            <Ionicons name="menu" size={24} color="black" />
-          </Pressable>
-        ), */
-        headerShown: true,
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        headerShown: false, // <-- This hides the header!
+        // ...other options
       }}
     >
-      <Tabs.Screen
-        name="room"
-        options={{
-          tabBarIcon: ({ color, focused }) => <TabBarIcon name={focused ? 'person' : 'person-outline'} color={color} />,
-          title: 'Room',
-        }}
-      />
-      <Tabs.Screen
-        name="index"
-        options={{
-          tabBarIcon: ({ color, focused }) => <TabBarIcon name={focused ? 'home' : 'home-outline'} color={color} />,
-          title: 'Home',
-        }}
-      />
-      <Tabs.Screen
-        name="groceries"
-        options={{
-          tabBarIcon: ({ color, focused }) => <TabBarIcon name={focused ? 'cart' : 'cart-outline'} color={color} />,
-          title: 'Groceries',
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'settings' : 'settings-outline'} color={color} />
-          ),
-          title: 'Settings',
-        }}
-      />
+      <Tabs.Screen name="room" options={{ title: 'Room' }} />
+      <Tabs.Screen name="index" options={{ title: 'Home' }} />
+      <Tabs.Screen name="groceries" options={{ title: 'List' }} />
+      <Tabs.Screen name="settings" options={{ title: 'Profile' }} />
     </Tabs>
   );
 }

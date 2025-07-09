@@ -1,49 +1,48 @@
+// screens/Home/index.tsx (o tu index.tsx actual)
 import { Link, useRouter } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, RefreshControl } from 'react-native';
-
-import type { Task } from '../../../../components/LivingAreaChecklist';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, RefreshControl } from 'react-native';
 
 import { useSession } from '../../../../contexts';
 import { db } from '../../../../lib/firebase-config';
 import AreaCard from '../../../../components/AreaCard';
-import FloatingAvatarButton from '../../../../components/FloatingAvatarButton';
+import AppLayout from '../../../../components/UI/AppLayout'; // Usa tu layout base
+import AvatarButton from '../../../../components/UI/AvatarButton'; // Ajusta el path si es necesario
 
-export default function TabsIndexScreen() {
-  const { signOut, user, userDoc } = useSession();
+export default function HomePage() {
+  const { user, userDoc } = useSession();
   const homeId = userDoc?.homeId;
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
-  const [todos, setTodos] = useState<{ [area: string]: Task[] }>({});
+  const [todos, setTodos] = useState<{ [area: string]: any[] }>({});
   const [refreshing, setRefreshing] = useState(false);
 
-  const displayName = user?.displayName || userDoc?.name || (user?.email ? user.email.split('@')[0] : 'Guest');
+  const userPhoto = userDoc?.profileImage; // <-- USA EL CORRECTO
+  const initials = userDoc?.name
+    ? userDoc.name
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+    : user?.email?.[0]?.toUpperCase() || 'U';
+
+  const displayName = userDoc?.name || (user?.email ? user.email.split('@')[0] : 'Guest');
   const router = useRouter();
 
-  // Fetch home data (areas + todos)
-  const fetchData = useCallback(async () => {
+  useEffect(() => {
     if (!homeId) return;
-    const ref = doc(db, 'homes', homeId);
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      setTodos(snap.data().todos || {});
-      setSelectedAreas(snap.data().selectedAreas || []);
-    }
+    const fetch = async () => {
+      const ref = doc(db, 'homes', homeId);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        setTodos(snap.data().todos || {});
+        setSelectedAreas(snap.data().selectedAreas || []);
+      }
+    };
+    fetch();
   }, [homeId]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // Pull to refresh handler
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchData();
-    setRefreshing(false);
-  }, [fetchData]);
-
-  // Only NOT checked tasks count for progress
-  function calcAreaProgress(tasks: Task[]): number {
+  function calcAreaProgress(tasks: any[]): number {
     if (!tasks?.length) return 1;
     const notChecked = tasks.filter(t => !t.checked);
     if (!notChecked.length) return 1;
@@ -61,25 +60,42 @@ export default function TabsIndexScreen() {
     );
   }
 
-  function hasOverdue(tasks: Task[] = []): boolean {
+  function hasOverdue(tasks: any[] = []): boolean {
     const now = Date.now();
     return tasks.some(t => !t.checked && t.deadline && new Date(t.deadline).getTime() < now);
   }
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    if (homeId) {
+      const ref = doc(db, 'homes', homeId);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        setTodos(snap.data().todos || {});
+        setSelectedAreas(snap.data().selectedAreas || []);
+      }
+    }
+    setRefreshing(false);
+  };
+
   return (
-    <View style={styles.container}>
-      {/* Welcome Section */}
-      <View style={{ alignItems: 'center', marginBottom: 20, marginTop: 32 }}>
-        <Text style={{ color: '#222', fontSize: 20, fontWeight: 'bold', marginBottom: 4 }}>Welcome back,</Text>
-        <Text style={{ color: '#0a7ea4', fontSize: 24, fontWeight: 'bold' }}>{displayName}</Text>
-        <Text style={{ color: '#6b7280', fontSize: 13, marginTop: 4 }}>{user?.email}</Text>
+    <AppLayout>
+      {/* Floating profile button */}
+      <AvatarButton uri={userPhoto} initials={initials} onPress={() => router.push('/details/profile')} />
+
+      {/* Welcome */}
+      <View className="items-center mt-10 mb-8">
+        <Text className="text-lg font-bold text-text mb-1">Welcome back,</Text>
+        <Text className="text-2xl font-bold text-primary">{displayName}</Text>
       </View>
-      {/* Area cards */}
+
+      {/* Area Cards */}
       <FlatList
         data={selectedAreas}
         keyExtractor={area => area}
         numColumns={2}
-        contentContainerStyle={{ alignItems: 'center', paddingBottom: 32 }}
+        contentContainerStyle={{ alignItems: 'center', paddingBottom: 36 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         renderItem={({ item: area }) => (
           <Link href={`/details/${encodeURIComponent(area)}`} asChild>
             <AreaCard
@@ -89,38 +105,7 @@ export default function TabsIndexScreen() {
             />
           </Link>
         )}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0a7ea4" colors={['#0a7ea4']} />
-        }
       />
-      {/* Logout Button */}
-      <Text
-        style={styles.logout}
-        onPress={async () => {
-          await signOut();
-          router.replace('/sign-in');
-        }}
-      >
-        Logout
-      </Text>
-      <FloatingAvatarButton />
-    </View>
+    </AppLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { backgroundColor: '#f7fafc', flex: 1, paddingTop: 32 },
-  logout: {
-    alignSelf: 'center',
-    backgroundColor: '#ef4444',
-    borderRadius: 10,
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 30,
-    marginTop: 30,
-    paddingHorizontal: 36,
-    paddingVertical: 14,
-    textAlign: 'center',
-  },
-});

@@ -3,6 +3,8 @@ import { doc, getDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
+import AppLayout from '@/components/UI/AppLayout';
+
 import { useSession } from '../../../../contexts';
 import { db } from '../../../../lib/firebase-config';
 import MyTasksCard from '../../../../components/MyTasksCard';
@@ -43,18 +45,20 @@ export default function RoomScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Your Room</Text>
-      <Text style={styles.sub}>Welcome, {displayName}</Text>
-      <View style={styles.cards}>
-        <Link href="/details/mytasks" asChild>
-          <MyTasksCard progress={calcProgress(myTasks)} />
-        </Link>
-        <Link href="/details/wishlist" asChild>
-          <WishlistCard />
-        </Link>
+    <AppLayout>
+      <View style={styles.container}>
+        <Text style={styles.title}>Your Room</Text>
+        <Text style={styles.sub}>Welcome, {displayName}</Text>
+        <View style={styles.cards}>
+          <Link href="/details/mytasks" asChild>
+            <MyTasksCard progress={calcProgress(myTasks)} />
+          </Link>
+          <Link href="/details/wishlist" asChild>
+            <WishlistCard />
+          </Link>
+        </View>
       </View>
-    </View>
+    </AppLayout>
   );
 }
 
@@ -69,7 +73,6 @@ const styles = StyleSheet.create({
   },
   container: {
     alignItems: 'center',
-    backgroundColor: '#fff',
     flex: 1,
     justifyContent: 'flex-start',
     padding: 28,

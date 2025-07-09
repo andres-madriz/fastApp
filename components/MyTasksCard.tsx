@@ -2,8 +2,9 @@ import Svg, { Circle } from 'react-native-svg';
 import React, { useRef, useEffect } from 'react';
 import { TouchableOpacity, Text, StyleSheet, View, Animated, Easing } from 'react-native';
 
-const RADIUS = 68;
-const STROKE = 12;
+// 25% BIGGER
+const RADIUS = Math.round(68 * 1.25); // 85
+const STROKE = Math.round(12 * 1.25); // 15
 const CIRCLE_LENGTH = 2 * Math.PI * RADIUS;
 
 export default function MyTasksCard({ onPress, progress = 0 }: { progress?: number; onPress?: () => void }) {
@@ -70,47 +71,47 @@ const styles = StyleSheet.create({
   card: {
     alignItems: 'center',
     justifyContent: 'center',
-    margin: 18,
+    margin: Math.round(18 * 1.25), // 23
   },
   centerCircle: {
     alignItems: 'center',
     backgroundColor: '#f9fafb',
-    borderRadius: 62,
+    borderRadius: 78, // 62 * 1.25 = 78
     elevation: 2,
-    height: 124,
+    height: 155, // 124 * 1.25 = 155
     justifyContent: 'center',
-    left: 18,
+    left: 23, // 18 * 1.25 = 23
     position: 'absolute',
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    top: 18,
-    width: 124,
+    top: 23, // 18 * 1.25 = 23
+    width: 155, // 124 * 1.25 = 155
   },
   percentText: {
     color: '#0a7ea4',
-    fontSize: 20,
+    fontSize: 25, // 20 * 1.25 = 25
     fontWeight: '600',
-    marginTop: 5,
+    marginTop: 7, // 5 * 1.25 = 7
   },
   svgWrap: {
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 80,
+    borderRadius: 100, // 80 * 1.25 = 100
     elevation: 4,
-    height: 160,
+    height: 200, // 160 * 1.25 = 200
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 12,
-    width: 160,
+    width: 200, // 160 * 1.25 = 200
   },
   text: {
     color: '#0a7ea4',
-    fontSize: 22,
+    fontSize: 28, // 22 * 1.25 = 28
     fontWeight: 'bold',
-    marginBottom: 2,
-    marginTop: 2,
+    marginBottom: 3, // 2 * 1.25 = 3
+    marginTop: 3, // 2 * 1.25 = 3
     textAlign: 'center',
     textTransform: 'capitalize',
   },

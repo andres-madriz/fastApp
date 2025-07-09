@@ -24,7 +24,7 @@ export default function FloatingAvatarButton() {
         <Image source={{ uri: avatar }} style={styles.avatar} resizeMode="cover" />
       </View>
       {/* Optional: Show initials or icon if no photo */}
-      {!userDoc?.photoURL && <Text style={styles.initials}>{name.charAt(0).toUpperCase()}</Text>}
+      {!userDoc?.profileImage && <Text style={styles.initials}>{name.charAt(0).toUpperCase()}</Text>}
     </TouchableOpacity>
   );
 }
