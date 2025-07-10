@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 
 import { Task } from './LivingAreaChecklist';
 
@@ -104,12 +104,21 @@ export default function TaskItem({ area, onDelete, onEdit, onToggle, task }: Pro
           />
         </View>
       </View>
-      {/* Edit Button - Calls the provided onEdit callback */}
-      <TouchableOpacity onPress={onEdit}>
-        <Text style={{ marginHorizontal: 4 }}>✏️</Text>
+      {/* Edit Button - Black outline */}
+      <TouchableOpacity onPress={onEdit} style={[styles.iconBtn, styles.editOutline]}>
+        <Image
+          source={require('../assets/images/edit.png')}
+          style={styles.icon}
+          resizeMode="contain"
+        />
       </TouchableOpacity>
-      <TouchableOpacity onPress={onDelete}>
-        <Text style={styles.deleteBtn}>🗑️</Text>
+      {/* Delete Button - Red outline */}
+      <TouchableOpacity onPress={onDelete} style={[styles.iconBtn, styles.deleteOutline]}>
+        <Image
+          source={require('../assets/images/delete.png')}
+          style={styles.icon}
+          resizeMode="contain"
+        />
       </TouchableOpacity>
     </View>
   );
@@ -125,7 +134,29 @@ const styles = StyleSheet.create({
     marginRight: 10,
     width: 26,
   },
-  deleteBtn: { fontSize: 18, marginLeft: 8 },
   itemRow: { alignItems: 'center', flexDirection: 'row', marginBottom: 10 },
   itemText: { flex: 1, fontSize: 15 },
+  iconBtn: {
+    marginLeft: 3,
+    marginRight: 2,
+    padding: 2,
+    height: 28,
+    width: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 7,
+    backgroundColor: '#fff',
+  },
+  editOutline: {
+    borderWidth: 2,
+    borderColor: '#222',
+  },
+  deleteOutline: {
+    borderWidth: 2,
+    borderColor: '#ef4444',
+  },
+  icon: {
+    width: 18,
+    height: 18,
+  },
 });

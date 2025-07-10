@@ -1,8 +1,33 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { addDays, addWeeks, addMonths, format, isToday, isBefore } from 'date-fns';
-import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import {
+  addDays,
+  addWeeks,
+  addMonths,
+  format,
+  isToday,
+  isBefore,
+} from 'date-fns';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Keyboard,
+  TouchableWithoutFeedback,
+} from 'react-native';
+import CustomButton from '@/components/CustomButton';
 
-const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const WEEKDAYS = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
 const UNITS = [
   { label: 'days', value: 'days' },
   { label: 'weeks', value: 'weeks' },
@@ -26,7 +51,7 @@ export default function EditTaskModal({
   const [minute, setMinute] = useState('00');
   const [deadline, setDeadline] = useState('');
 
-  // Initialize form with task values
+  // Init form from props
   useEffect(() => {
     if (!task) return;
     setName(task.name || '');
@@ -50,7 +75,7 @@ export default function EditTaskModal({
     }
   }, [task]);
 
-  // Calculate the deadlineDate object
+  // Deadline date object
   const deadlineDate = useMemo(() => {
     let d = new Date();
     if (unit === 'days') d = addDays(d, Number(amount) || 0);
@@ -63,13 +88,11 @@ export default function EditTaskModal({
     return d;
   }, [amount, unit, hour, minute]);
 
-  // Update ISO deadline string when values change
   useEffect(() => {
     setDeadline(deadlineDate.toISOString());
-    // eslint-disable-next-line
-  }, [deadlineDate.getTime()]);
+  }, [deadlineDate]);
 
-  // Display string with time
+  // String preview
   const deadlineDisplay = useMemo(() => {
     const dayName = WEEKDAYS[deadlineDate.getDay()];
     return `Deadline: ${dayName} ${format(deadlineDate, 'dd-MM-yyyy HH:mm')}`;
@@ -87,7 +110,6 @@ export default function EditTaskModal({
       Alert.alert('Invalid Minutes', 'Minutes must be between 0 and 59');
       return false;
     }
-    // For deadlines today, check if time is not in the past
     if (isToday(deadlineDate) && isBefore(deadlineDate, new Date())) {
       Alert.alert('Invalid Time', 'Deadline time must be in the future');
       return false;
@@ -98,102 +120,237 @@ export default function EditTaskModal({
   if (!task) return null;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Edit Task</Text>
-      <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Task name" />
-      <TextInput style={styles.input} value={details} onChangeText={setDetails} placeholder="Details" />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Edit Task</Text>
+        <TextInput
+          style={[styles.input, styles.textInput]}
+          value={name}
+          onChangeText={setName}
+          placeholder="Task name"
+          placeholderTextColor="#b0b5bf"
+        />
+        <TextInput
+          style={[styles.input, styles.textInput]}
+          value={details}
+          onChangeText={setDetails}
+          placeholder="Details"
+          placeholderTextColor="#b0b5bf"
+        />
 
-      <View style={styles.deadlinePicker}>
-        <Text style={{ fontWeight: '600', marginBottom: 6 }}>Deadline in</Text>
-        <View style={{ alignItems: 'center', flexDirection: 'row' }}>
-          <TextInput
-            value={amount}
-            onChangeText={setAmount}
-            keyboardType="numeric"
-            style={[styles.input, { marginBottom: 0, marginRight: 7, width: 48 }]}
-            placeholder="N"
-          />
-          {UNITS.map(u => (
-            <TouchableOpacity
-              key={u.value}
-              style={[styles.unitBtn, unit === u.value && styles.selectedUnitBtn]}
-              onPress={() => setUnit(u.value as any)}
-            >
-              <Text style={[styles.unitBtnText, unit === u.value && styles.selectedUnitBtnText]}>{u.label}</Text>
-            </TouchableOpacity>
-          ))}
+        {/* Deadline */}
+        <View style={styles.deadlinePicker}>
+          <Text style={styles.sectionLabel}>Deadline in</Text>
+          <View style={styles.deadlineRow}>
+            <TextInput
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="numeric"
+              style={[styles.input, styles.numberInput]}
+              placeholder="N"
+              placeholderTextColor="#b0b5bf"
+              returnKeyType="done"
+              blurOnSubmit
+            />
+            {UNITS.map(u => (
+              <TouchableOpacity
+                key={u.value}
+                style={[
+                  styles.unitBtn,
+                  unit === u.value && styles.selectedUnitBtn,
+                ]}
+                onPress={() => setUnit(u.value as any)}
+              >
+                <Text
+                  style={[
+                    styles.unitBtnText,
+                    unit === u.value && styles.selectedUnitBtnText,
+                  ]}
+                >
+                  {u.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {/* Hour/Minute selector */}
+          <View style={styles.timeRow}>
+            <Text style={styles.timeLabel}>Time:</Text>
+            <TextInput
+              value={hour}
+              onChangeText={val => setHour(val.replace(/[^0-9]/g, ''))}
+              keyboardType="numeric"
+              maxLength={2}
+              style={[styles.input, styles.timeInput]}
+              placeholder="HH"
+              placeholderTextColor="#b0b5bf"
+              returnKeyType="done"
+              blurOnSubmit
+            />
+            <Text style={styles.colon}>:</Text>
+            <TextInput
+              value={minute}
+              onChangeText={val => setMinute(val.replace(/[^0-9]/g, ''))}
+              keyboardType="numeric"
+              maxLength={2}
+              style={[styles.input, styles.timeInput]}
+              placeholder="MM"
+              placeholderTextColor="#b0b5bf"
+              returnKeyType="done"
+              blurOnSubmit
+            />
+          </View>
+          <Text style={styles.deadlinePreview}>{deadlineDisplay}</Text>
         </View>
 
-        {/* Hour/Minute selector */}
-        <View style={{ alignItems: 'center', flexDirection: 'row', marginTop: 8 }}>
-          <Text style={{ marginRight: 6 }}>Time:</Text>
-          <TextInput
-            value={hour}
-            onChangeText={val => setHour(val.replace(/[^0-9]/g, ''))}
-            keyboardType="numeric"
-            maxLength={2}
-            style={[styles.input, { marginBottom: 0, marginRight: 2, textAlign: 'center', width: 40 }]}
-            placeholder="HH"
-          />
-          <Text style={{ fontSize: 17, fontWeight: 'bold' }}>:</Text>
-          <TextInput
-            value={minute}
-            onChangeText={val => setMinute(val.replace(/[^0-9]/g, ''))}
-            keyboardType="numeric"
-            maxLength={2}
-            style={[styles.input, { marginBottom: 0, marginLeft: 2, textAlign: 'center', width: 40 }]}
-            placeholder="MM"
-          />
-        </View>
-        <Text style={{ color: '#0a7ea4', fontWeight: '600', marginTop: 10 }}>{deadlineDisplay}</Text>
+        <CustomButton
+          title="Save Changes"
+          onPress={() => {
+            if (validateTime()) {
+              const offsetMs = deadlineDate.getTimezoneOffset() * 60 * 1000;
+              const adjusted = new Date(deadlineDate.getTime() - offsetMs);
+              const iso = adjusted.toISOString();
+              onSave({
+                ...task,
+                deadline: iso,
+                details,
+                name,
+              });
+            }
+          }}
+          style={styles.createBtn}
+        />
+        <CustomButton
+          title="Cancel"
+          onPress={onCancel}
+          style={styles.cancelBtn}
+          textStyle={{ color: '#324155', fontWeight: 'bold' }}
+        />
       </View>
-
-      <Button
-        title="Save Changes"
-        onPress={() => {
-          if (validateTime()) {
-            // Ajuste para que el ISO corresponda a la hora local seleccionada
-            const offsetMs = deadlineDate.getTimezoneOffset() * 60 * 1000;
-            const adjusted = new Date(deadlineDate.getTime() - offsetMs);
-            const iso = adjusted.toISOString();
-            onSave({
-              ...task,
-              deadline: iso,
-              details,
-              name,
-            });
-          }
-        }}
-      />
-      <Button title="Cancel" color="#aaa" onPress={onCancel} />
-    </View>
+    </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '98%' },
-  deadlinePicker: { marginBottom: 18 },
-  input: { borderColor: '#ccc', borderRadius: 8, borderWidth: 1, marginBottom: 18, padding: 12 },
-  selectedUnitBtn: {
-    backgroundColor: '#0a7ea4',
-    borderColor: '#0a7ea4',
+  container: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 24,
+    width: '100%',
+    shadowColor: '#0a7ea4',
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 2,
+    alignItems: 'stretch',
   },
-  selectedUnitBtnText: {
-    color: '#fff',
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 18,
+    color: '#0a7ea4',
+    letterSpacing: 0.4,
   },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  sectionLabel: {
+    fontWeight: '600',
+    color: '#444',
+    marginBottom: 6,
+    fontSize: 16,
+  },
+  input: {
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    borderWidth: 1.5,
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: '#f6fafd',
+    color: '#222',
+    fontSize: 15,
+  },
+  textInput: {
+    fontSize: 16,
+    marginBottom: 15,
+  },
+  numberInput: {
+    marginBottom: 0,
+    marginRight: 7,
+    width: 60, // wider
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+    backgroundColor: '#f8fafc',
+  },
+  deadlinePicker: {
+    marginBottom: 18,
+  },
+  deadlineRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginBottom: 2,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 5,
+  },
+  timeLabel: {
+    marginRight: 6,
+    color: '#444',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  colon: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginHorizontal: 2,
+    color: '#333',
+  },
+  timeInput: {
+    width: 60,
+    marginBottom: 0,
+    marginRight: 0,
+    marginLeft: 0,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+    backgroundColor: '#f8fafc',
+  },
   unitBtn: {
     backgroundColor: '#f7f7f7',
     borderColor: '#eee',
     borderRadius: 7,
-    borderWidth: 1,
+    borderWidth: 1.5,
     marginHorizontal: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  selectedUnitBtn: {
+    backgroundColor: '#0a7ea4',
+    borderColor: '#0a7ea4',
   },
   unitBtnText: {
     color: '#555',
     fontSize: 15,
     fontWeight: '600',
+  },
+  selectedUnitBtnText: {
+    color: '#fff',
+  },
+  deadlinePreview: {
+    color: '#0a7ea4',
+    fontWeight: '600',
+    marginTop: 13,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  createBtn: {
+    backgroundColor: '#0a7ea4',
+    marginTop: 6,
+    borderRadius: 8,
+  },
+  cancelBtn: {
+    backgroundColor: '#d8e0e7',
+    marginTop: 10,
+    borderRadius: 8,
   },
 });

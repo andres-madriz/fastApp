@@ -3,6 +3,7 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 import { useSession } from '../../../../contexts'; // adjust import if needed
 import { db } from '../../../../lib/firebase-config';
+import AppLayout from '../../../../components/UI/AppLayout'; // Usa tu layout base
 import GroceriesChecklist from '../../../../components/GroceriesChecklist';
 
 type GroceryItem = { id: string; name: string; checked: boolean };
@@ -46,5 +47,9 @@ export default function GroceriesPage() {
     updateGroceries(newList);
   };
 
-  return <GroceriesChecklist items={groceries} onAdd={handleAdd} onToggle={handleToggle} onDelete={handleDelete} />;
+  return (
+    <AppLayout>
+      <GroceriesChecklist items={groceries} onAdd={handleAdd} onToggle={handleToggle} onDelete={handleDelete} />
+    </AppLayout>
+  );
 }

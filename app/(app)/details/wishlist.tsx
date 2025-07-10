@@ -1,11 +1,15 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { View, Text, TextInput, Button, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image } from 'react-native';
 
 import { useSession } from '../../../contexts';
 import { db } from '../../../lib/firebase-config';
-import AppLayout from '../../../components/UI/AppLayout'; // Usa tu layout base
+import AppLayout from '../../../components/UI/AppLayout';
+
+import CustomInput from '../../../components/CustomInput';
+import CustomButton from '../../../components/CustomButton';
+import CustomCheckbox from '../../../components/CustomCheckbox';
 
 // Wishlist item type
 type WishlistItem = {
@@ -22,7 +26,10 @@ export default function WishlistScreen() {
   const [loading, setLoading] = useState(true);
   const [newItem, setNewItem] = useState('');
 
-  // Fetch wishlist from Firestore
+  // Inline editing states
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState('');
+
   useEffect(() => {
     if (!userId) return;
     const fetch = async () => {
@@ -64,6 +71,29 @@ export default function WishlistScreen() {
     updateItems(items.filter(item => item.id !== id));
   };
 
+  // Inline edit
+  const startEdit = (item: WishlistItem) => {
+    setEditingId(item.id);
+    setEditingValue(item.name);
+  };
+  const saveEdit = (id: string) => {
+    if (editingValue.trim()) {
+      updateItems(items.map(item => (item.id === id ? { ...item, name: editingValue.trim() } : item)));
+    }
+    setEditingId(null);
+    setEditingValue('');
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingValue('');
+  };
+
+  // -- IMAGE require calls
+  const editImg = require('../../../assets/images/edit.png');
+  const deleteImg = require('../../../assets/images/delete.png');
+  const checkImg = require('../../../assets/images/check.png');
+  const closeImg = require('../../../assets/images/close.png');
+
   return (
     <AppLayout>
       {/* Back Button */}
@@ -73,14 +103,13 @@ export default function WishlistScreen() {
       <View style={styles.container}>
         <Text style={styles.title}>Wishlist</Text>
         <View style={styles.inputRow}>
-          <TextInput
+          <CustomInput
             placeholder="Add to wishlist"
             value={newItem}
             onChangeText={setNewItem}
-            style={styles.input}
             onSubmitEditing={() => handleAdd(newItem)}
           />
-          <Button title="Add" onPress={() => handleAdd(newItem)} />
+          <CustomButton title="Add" onPress={() => handleAdd(newItem)} />
         </View>
         {loading ? (
           <Text>Loading...</Text>
@@ -90,31 +119,61 @@ export default function WishlistScreen() {
             keyExtractor={item => item.id}
             renderItem={({ item }) => (
               <View style={styles.itemRow}>
-                <TouchableOpacity
-                  onPress={() => handleToggle(item.id)}
-                  style={[
-                    styles.checkbox,
-                    {
-                      backgroundColor: item.checked ? '#0a7ea4' : '#fff',
-                      borderColor: '#0a7ea4',
-                    },
-                  ]}
-                >
-                  {item.checked && <Text style={{ color: '#fff', fontWeight: 'bold' }}>✓</Text>}
-                </TouchableOpacity>
-                <Text
-                  style={[
-                    styles.itemText,
-                    {
-                      color: item.checked ? '#9BA1A6' : '#11181C',
-                      textDecorationLine: item.checked ? 'line-through' : 'none',
-                    },
-                  ]}
-                >
-                  {item.name}
-                </Text>
-                <TouchableOpacity onPress={() => handleDelete(item.id)}>
-                  <Text style={styles.deleteBtn}>🗑️</Text>
+                <CustomCheckbox checked={item.checked} onToggle={() => handleToggle(item.id)} />
+                {editingId === item.id ? (
+                  <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                    <CustomInput
+                      value={editingValue}
+                      onChangeText={setEditingValue}
+                      style={{
+                        flex: 1,
+                        marginRight: 5,
+                        minWidth: 40,
+                        borderWidth: 2,
+                        borderColor: '#0a7ea4',
+                        borderRadius: 8,
+                        /* backgroundColor: '#e6f6fb', */
+                        paddingHorizontal: 10,
+                        paddingVertical: 7,
+                      }}
+                      autoFocus
+                    />
+                    <TouchableOpacity
+                      onPress={() => saveEdit(item.id)}
+                      style={[styles.iconBtn, styles.greenOutline]}
+                    >
+                      <Image source={checkImg} style={styles.icon} resizeMode="contain" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={cancelEdit}
+                      style={[styles.iconBtn, styles.redOutline]}
+                    >
+                      <Image source={closeImg} style={styles.icon} resizeMode="contain" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <>
+                    <Text
+                      style={[
+                        styles.itemText,
+                        {
+                          color: item.checked ? '#9BA1A6' : '#11181C',
+                          textDecorationLine: item.checked ? 'line-through' : 'none',
+                        },
+                      ]}
+                    >
+                      {item.name}
+                    </Text>
+                    <TouchableOpacity
+                      style={[styles.iconBtn/* , { borderColor: '#eab308' } */]}
+                      onPress={() => startEdit(item)}
+                    >
+                      <Image source={editImg} style={styles.icon} resizeMode="contain" />
+                    </TouchableOpacity>
+                  </>
+                )}
+                <TouchableOpacity style={[styles.iconBtn, styles.redOutline]} onPress={() => handleDelete(item.id)}>
+                  <Image source={deleteImg} style={styles.icon} resizeMode="contain" />
                 </TouchableOpacity>
               </View>
             )}
@@ -143,31 +202,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
-  checkbox: {
-    alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 2,
-    height: 28,
-    justifyContent: 'center',
-    marginRight: 10,
-    width: 28,
-  },
   container: {
     backgroundColor: '#f8f9fa',
     borderRadius: 12,
     flex: 1,
     margin: 12,
-    marginTop: 54, // leaves space for the back button
+    marginTop: 54,
     padding: 18,
-  },
-  deleteBtn: { fontSize: 18, marginLeft: 8 },
-  input: {
-    borderColor: '#eee',
-    borderRadius: 8,
-    borderWidth: 1,
-    flex: 1,
-    marginRight: 8,
-    padding: 10,
   },
   inputRow: {
     alignItems: 'center',
@@ -183,9 +224,32 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
   },
+  iconBtn: {
+    padding: 4,
+    borderWidth: 2,
+    borderRadius: 7,
+    marginHorizontal: 2,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  icon: {
+    width: 22,
+    height: 22,
+  },
+  greenOutline: {
+    borderColor: '#16a34a',
+  },
+  redOutline: {
+    borderColor: '#ef4444',
+  },
+  deleteBtn: {
+    backgroundColor: 'transparent',
+  },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 14,
   },
 });
+

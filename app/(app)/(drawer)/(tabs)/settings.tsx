@@ -1,10 +1,22 @@
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { doc, updateDoc, getDoc, deleteDoc } from 'firebase/firestore';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  ActivityIndicator,
+  SafeAreaView,
+  Platform,
+  KeyboardAvoidingView,
+} from 'react-native';
 
 import { useSession } from '../../../../contexts';
 import { db } from '../../../../lib/firebase-config';
+import AppLayout from '../../../../components/UI/AppLayout';
 
 type Member = { uid: string; name: string };
 
@@ -15,7 +27,6 @@ export default function HouseSettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [leaving, setLeaving] = useState(false);
 
-  // Fetch home data using user's homeId
   useEffect(() => {
     const fetchHome = async () => {
       if (!userDoc?.homeId) {
@@ -34,7 +45,12 @@ export default function HouseSettingsScreen() {
         const memberDocs = await Promise.all(
           memberUIDs.map(async (uid: string) => {
             const userSnap = await getDoc(doc(db, 'users', uid));
-            return { name: userSnap.exists() ? userSnap.data().name || userSnap.data().displayName || uid : uid, uid };
+            return {
+              name: userSnap.exists()
+                ? userSnap.data().name || userSnap.data().displayName || uid
+                : uid,
+              uid,
+            };
           }),
         );
         setMembers(memberDocs);
@@ -113,95 +129,174 @@ export default function HouseSettingsScreen() {
   };
 
   const goToAreaSelector = () => {
-    router.push('../../AreaSelector'); // Cambia la ruta si tu selector de áreas es otra
+    router.push('../../AreaSelector');
   };
 
   return (
-    <ScrollView style={{ backgroundColor: '#fff', flex: 1 }} contentContainerStyle={{ padding: 26 }}>
-      {/* House Name */}
-      <Text style={styles.houseName}>{home?.name || 'Home'}</Text>
-      {/* Join Code */}
-      <Text style={styles.joinCode}>#{home?.joinCode || ''}</Text>
-      {/* Members */}
-      <Text style={styles.sectionTitle}>Members</Text>
-      <View style={styles.membersList}>
-        {members.length === 0 ? (
-          <Text style={styles.member}>No members yet.</Text>
-        ) : (
-          members.map(({ name, uid }, i) => (
-            <Text key={uid} style={styles.member}>
-              {name}
-              {uid === user.uid ? ' (You)' : ''}
+  <AppLayout>
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* House Name & Join Code */}
+          <View style={styles.topSection}>
+            <Text style={styles.houseName}>{home?.name || 'Home'}</Text>
+            <Text style={styles.joinCode}>
+              Join code: <Text style={styles.codeText}>#{home?.joinCode || ''}</Text>
             </Text>
-          ))
-        )}
-      </View>
+          </View>
 
-      {/* Area Selector Button */}
-      <TouchableOpacity style={styles.areaSelectorBtn} onPress={goToAreaSelector}>
-        <Text style={{ color: '#0a7ea4', fontSize: 16, fontWeight: 'bold' }}>Home Area Selector</Text>
-      </TouchableOpacity>
+          {/* Members Card */}
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Members</Text>
+            <View style={styles.membersList}>
+              {members.length === 0 ? (
+                <Text style={styles.member}>No members yet.</Text>
+              ) : (
+                members.map(({ name, uid }) => (
+                  <Text key={uid} style={styles.member}>
+                    {name}
+                    {uid === user.uid ? ' (You)' : ''}
+                  </Text>
+                ))
+              )}
+            </View>
+          </View>
+        </ScrollView>
 
-      {/* Leave Home Button */}
-      <TouchableOpacity style={styles.leaveBtn} onPress={leaving ? undefined : handleLeaveHome} disabled={leaving}>
-        <Text style={styles.leaveBtnText}>{leaving ? 'Leaving...' : 'Leave Home'}</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
+        {/* Bottom Actions - OUTSIDE scroll, always visible */}
+        <View style={styles.bottomButtons}>
+          <TouchableOpacity style={styles.areaSelectorBtn} onPress={goToAreaSelector}>
+            <Text style={styles.areaSelectorText}>Home Area Selector</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.leaveBtn}
+            onPress={leaving ? undefined : handleLeaveHome}
+            disabled={leaving}
+          >
+            <Text style={styles.leaveBtnText}>{leaving ? 'Leaving...' : 'Leave Home'}</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  </AppLayout>
+);
+
 }
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: '',
+  },
+  scrollContent: {
+    padding: 0,
+    paddingBottom: 30,
+    minHeight: '100%',
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+  },
+  topSection: {
+    alignItems: 'center',
+    marginTop: 46,
+    marginBottom: 26,
+  },
+  houseName: {
+    color: '#0a7ea4',
+    fontSize: 28,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  joinCode: {
+    color: '#222',
+    fontSize: 15,
+    marginBottom: 6,
+    textAlign: 'center',
+    fontWeight: '500',
+    letterSpacing: 0.8,
+  },
+  codeText: {
+    color: '#888',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
+  card: {
+    backgroundColor: '#f6fafe',
+    borderRadius: 18,
+    padding: 20,
+    marginHorizontal: 8,
+    marginBottom: 32,
+    elevation: 1,
+    shadowColor: '#0a7ea4',
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+  },
+  sectionTitle: {
+    color: '#1a3344',
+    fontSize: 17,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  membersList: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+  },
+  member: {
+    color: '#3b4668',
+    fontSize: 16,
+    fontWeight: '500',
+    marginVertical: 3,
+  },
+  bottomButtons: {
+  paddingHorizontal: 0,
+  paddingBottom: 70,      // Add a gap from the bottom (adjust as needed)
+  width: '100%',
+  alignItems: 'center',
+  backgroundColor: '',
+},
   areaSelectorBtn: {
     alignItems: 'center',
     backgroundColor: '#eaf9fd',
     borderRadius: 12,
-    elevation: 0.5,
-    marginBottom: 32,
-    padding: 14,
+    marginBottom: 22,
+    padding: 15,
+    width: '92%',
+    elevation: 1,
   },
-  center: { alignItems: 'center', backgroundColor: '#fff', flex: 1, justifyContent: 'center' },
-  houseName: {
+  areaSelectorText: {
     color: '#0a7ea4',
-    fontSize: 25,
+    fontSize: 17,
     fontWeight: 'bold',
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  joinCode: {
-    color: '#888',
-    fontSize: 16,
-    letterSpacing: 1.5,
-    marginBottom: 26,
-    textAlign: 'center',
+    letterSpacing: 0.5,
   },
   leaveBtn: {
     alignItems: 'center',
     backgroundColor: '#ff4747',
     borderRadius: 12,
-    marginTop: 24,
-    padding: 14,
+    marginTop: 6,
+    padding: 16,
+    width: '92%',
+    elevation: 2,
   },
   leaveBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
     letterSpacing: 1,
   },
-  member: {
-    color: '#444',
-    fontSize: 15,
-    paddingVertical: 3,
-  },
-  membersList: {
-    backgroundColor: '#fafcff',
-    borderRadius: 10,
-    marginBottom: 32,
-    padding: 16,
-  },
-  sectionTitle: {
-    color: '#333',
-    fontSize: 17,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
+  center: { alignItems: 'center', backgroundColor: '#fff', flex: 1, justifyContent: 'center' },
 });
+
